@@ -1,0 +1,1257 @@
+{
+  "name": "AI Lead Qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8",
+          "cachedResultName": "AI_Lead_Qualification_Spreadsheet_Template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 330063823,
+          "cachedResultName": "Incoming_Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit#gid=330063823"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "23455b4f-e025-4ae8-a613-51fd4fcb0844",
+      "name": "New Lead Added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "nO4g1NzTU4koALRt",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "target-offering",
+              "name": "target_offering",
+              "type": "string",
+              "value": "Omegtric Technologies. Omegtric Technologies Limited is a Nigerian technology and engineering company offering software development, IT consultancy, computer and network engineering, ICT equipment distribution, systems installation and maintenance, and technology training. Its products include ExamsPrep, an exam preparation platform; SkillsBridge, a learning management and career-readiness platform; and MyResult, a digital academic result management system. The company may be interested in organizations such as educational institutions, schools, universities, training centers, businesses requiring custom software or IT infrastructure, organizations seeking technology equipment, and companies needing IT support or engineering services. When qualifying leads, assess whether the company's activities indicate a plausible need for Omegtric's specific products or services. Use publicly available evidence, explain the reason for each recommendation, and flag uncertain cases for human review."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1d38bdb9-5a5a-4a92-8541-5401b1cc33d6",
+      "name": "Target Organization Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "query": "={{ ($json.Company_Name || \"\") + \" \" + ($json.Company_Domain || \"\") + \" company products services what they do\" }}",
+        "count": 8,
+        "additionalParameters": {}
+      },
+      "id": "6d054384-0ef9-4866-97a4-c97e63d546bb",
+      "name": "Research Company",
+      "type": "@brave/n8n-nodes-brave-search.braveSearch",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        320
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "braveSearchApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "research",
+        "options": {}
+      },
+      "id": "b66f7c03-b063-4787-ac8e-5c268d88257e",
+      "name": "Combine Research",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        720,
+        320
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5.4-mini",
+          "cachedResultName": "GPT-5.4-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a B2B sales qualification analyst. Given a lead, web research about their company and a description of the target organization (the seller), decide whether the lead company is a potential customer. Use only the evidence provided; never invent revenue, employee counts or roles - write \"Unknown\" when not supported by evidence. If the research is missing, contradictory or too thin to judge reliably, or the company cannot be identified, set verdict to \"needs_review\" (missing information is not proof of a poor fit). Respond ONLY with a JSON object with these keys, all strings except qualification_score: verdict (\"qualified\" | \"unqualified\" | \"needs_review\"), qualification_score (number 0-100), data_confidence (\"High\" | \"Medium\" | \"Low\"), industry, company_description (2-4 sentences), employee_range, estimated_revenue, headquarters, countries_of_operation, reasoning (qualified: why they are a good fit; unqualified: why low fit; needs_review: why review is needed), evidence_summary (key facts found, distinguishing verified facts from estimates), business_need (which Omegtric product or service they plausibly need, or N/A), recommended_follow_up (concrete sales steps, or N/A), outreach_angle (suggested angle for first contact, or N/A), missing_information (what could not be found), conflicting_or_missing_evidence (contradictions or gaps), recommended_verification (what a human should check), source_urls (comma-separated URLs used)."
+            },
+            {
+              "content": "=TARGET ORGANIZATION (seller):\n{{ $(\"Target Organization Profile\").item.json.target_offering }}\n\nLEAD:\nName: {{ $(\"Target Organization Profile\").item.json.Contact_Name }}\nEmail: {{ $(\"Target Organization Profile\").item.json.Email }}\nJob title: {{ $(\"Target Organization Profile\").item.json.Job_Title }}\nCompany: {{ $(\"Target Organization Profile\").item.json.Company_Name }}\nDomain: {{ $(\"Target Organization Profile\").item.json.Company_Domain }}\n\nWEB RESEARCH RESULTS (JSON):\n{{ JSON.stringify($json.research || []).slice(0, 8000) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "id": "d8c15707-95fb-4397-ac54-52d865a12cec",
+      "name": "AI Qualify Lead",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        336
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "lead_id",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Lead_ID }}"
+            },
+            {
+              "id": "f1",
+              "name": "contact_name",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Contact_Name }}"
+            },
+            {
+              "id": "f2",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Email }}"
+            },
+            {
+              "id": "f3",
+              "name": "job_title",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Job_Title }}"
+            },
+            {
+              "id": "f4",
+              "name": "company_name",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Company_Name }}"
+            },
+            {
+              "id": "f5",
+              "name": "company_domain",
+              "type": "string",
+              "value": "={{ $(\"Target Organization Profile\").item.json.Company_Domain }}"
+            },
+            {
+              "id": "f6",
+              "name": "verdict",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.verdict }}"
+            },
+            {
+              "id": "f7",
+              "name": "qualification_score",
+              "type": "number",
+              "value": "={{ $json.output[0].content[0].text.qualification_score }}"
+            },
+            {
+              "id": "f8",
+              "name": "data_confidence",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.data_confidence }}"
+            },
+            {
+              "id": "f9",
+              "name": "industry",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.industry }}"
+            },
+            {
+              "id": "f10",
+              "name": "company_description",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.company_description }}"
+            },
+            {
+              "id": "f11",
+              "name": "employee_range",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.employee_range }}"
+            },
+            {
+              "id": "f12",
+              "name": "estimated_revenue",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.estimated_revenue }}"
+            },
+            {
+              "id": "f13",
+              "name": "headquarters",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.headquarters }}"
+            },
+            {
+              "id": "f14",
+              "name": "countries_of_operation",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.countries_of_operation }}"
+            },
+            {
+              "id": "f15",
+              "name": "reasoning",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.reasoning }}"
+            },
+            {
+              "id": "f16",
+              "name": "evidence_summary",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.evidence_summary }}"
+            },
+            {
+              "id": "f17",
+              "name": "business_need",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.business_need }}"
+            },
+            {
+              "id": "f18",
+              "name": "recommended_follow_up",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.recommended_follow_up }}"
+            },
+            {
+              "id": "f19",
+              "name": "outreach_angle",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.outreach_angle }}"
+            },
+            {
+              "id": "f20",
+              "name": "missing_information",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.missing_information }}"
+            },
+            {
+              "id": "f21",
+              "name": "conflicting_or_missing_evidence",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.conflicting_or_missing_evidence }}"
+            },
+            {
+              "id": "f22",
+              "name": "recommended_verification",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.recommended_verification }}"
+            },
+            {
+              "id": "f23",
+              "name": "source_urls",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text.source_urls }}"
+            },
+            {
+              "id": "f24",
+              "name": "processed_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27840e38-16e8-4a24-b6bb-6fb3a2bffc1c",
+      "name": "Prepare Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1152,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "qualified",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Qualified"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "unqualified",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Unqualified"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Needs Review"
+        }
+      },
+      "id": "91073226-c38a-41ec-a0a8-f8667b265f39",
+      "name": "Route by Verdict",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1376,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8",
+          "cachedResultName": "AI_Lead_Qualification_Spreadsheet_Template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 316656367,
+          "cachedResultName": "Qualified_Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit#gid=316656367"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead_ID": "={{ $json.lead_id }}",
+            "Processed_Date": "={{ $json.processed_at }}",
+            "Contact_Name": "={{ $json.contact_name }}",
+            "Email": "={{ $json.email }}",
+            "Job_Title": "={{ $json.job_title }}",
+            "Company_Name": "={{ $json.company_name }}",
+            "Company_Domain": "={{ $json.company_domain }}",
+            "Industry": "={{ $json.industry }}",
+            "Company_Description": "={{ $json.company_description }}",
+            "Employee_Range": "={{ $json.employee_range }}",
+            "Estimated_Revenue": "={{ $json.estimated_revenue }}",
+            "Headquarters": "={{ $json.headquarters }}",
+            "Countries_Of_Operation": "={{ $json.countries_of_operation }}",
+            "Qualification_Score": "={{ $json.qualification_score }}",
+            "Data_Confidence": "={{ $json.data_confidence }}",
+            "Why_Qualified": "={{ $json.reasoning }}",
+            "Evidence_Summary": "={{ $json.evidence_summary }}",
+            "Safety_or_Business_Need": "={{ $json.business_need }}",
+            "Recommended_Follow_Up": "={{ $json.recommended_follow_up }}",
+            "Outreach_Angle": "={{ $json.outreach_angle }}",
+            "Source_URLs": "={{ $json.source_urls }}",
+            "Notification_Status": "Emailed"
+          },
+          "schema": [
+            {
+              "id": "Lead_ID",
+              "displayName": "Lead_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Processed_Date",
+              "displayName": "Processed_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contact_Name",
+              "displayName": "Contact_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Job_Title",
+              "displayName": "Job_Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Name",
+              "displayName": "Company_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Domain",
+              "displayName": "Company_Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Description",
+              "displayName": "Company_Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Employee_Range",
+              "displayName": "Employee_Range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estimated_Revenue",
+              "displayName": "Estimated_Revenue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Headquarters",
+              "displayName": "Headquarters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Countries_Of_Operation",
+              "displayName": "Countries_Of_Operation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Qualification_Score",
+              "displayName": "Qualification_Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Data_Confidence",
+              "displayName": "Data_Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Why_Qualified",
+              "displayName": "Why_Qualified",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Evidence_Summary",
+              "displayName": "Evidence_Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Safety_or_Business_Need",
+              "displayName": "Safety_or_Business_Need",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Recommended_Follow_Up",
+              "displayName": "Recommended_Follow_Up",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Outreach_Angle",
+              "displayName": "Outreach_Angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Source_URLs",
+              "displayName": "Source_URLs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Notification_Status",
+              "displayName": "Notification_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "027e142d-cba8-4c61-8e2e-4fdadcfefb33",
+      "name": "Save Qualified Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1328,
+        128
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MG310It0rEGjOxWR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "okonudeborah6@gmail.com",
+        "subject": "=New qualified lead: {{ $(\"Prepare Result\").item.json.company_name }} (score {{ $(\"Prepare Result\").item.json.qualification_score }})",
+        "emailType": "text",
+        "message": "=New qualified lead (score {{ $(\"Prepare Result\").item.json.qualification_score }}, data confidence {{ $(\"Prepare Result\").item.json.data_confidence }})\n\nContact: {{ $(\"Prepare Result\").item.json.contact_name }}, {{ $(\"Prepare Result\").item.json.job_title }}\nEmail: {{ $(\"Prepare Result\").item.json.email }}\nCompany: {{ $(\"Prepare Result\").item.json.company_name }} ({{ $(\"Prepare Result\").item.json.company_domain }})\n\nAbout the company:\n{{ $(\"Prepare Result\").item.json.company_description }}\n\nWhy they are a fit:\n{{ $(\"Prepare Result\").item.json.reasoning }}\n\nBusiness need:\n{{ $(\"Prepare Result\").item.json.business_need }}\n\nRecommended follow-up:\n{{ $(\"Prepare Result\").item.json.recommended_follow_up }}\n\nOutreach angle:\n{{ $(\"Prepare Result\").item.json.outreach_angle }}\n\nSources: {{ $(\"Prepare Result\").item.json.source_urls }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "1096aff9-ecd8-46e5-9267-f09007e43cb1",
+      "name": "Notify Sales Team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        128
+      ],
+      "webhookId": "c8820458-96f2-499d-b95a-35dce1ccac37",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EB7qzwp0uhjZNy70",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8",
+          "cachedResultName": "AI_Lead_Qualification_Spreadsheet_Template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 2092433017,
+          "cachedResultName": "Flagged_Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit#gid=2092433017"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead_ID": "={{ $json.lead_id }}",
+            "Processed_Date": "={{ $json.processed_at }}",
+            "Contact_Name": "={{ $json.contact_name }}",
+            "Email": "={{ $json.email }}",
+            "Job_Title": "={{ $json.job_title }}",
+            "Company_Name": "={{ $json.company_name }}",
+            "Company_Domain": "={{ $json.company_domain }}",
+            "Industry": "={{ $json.industry }}",
+            "Company_Description": "={{ $json.company_description }}",
+            "Employee_Range": "={{ $json.employee_range }}",
+            "Estimated_Revenue": "={{ $json.estimated_revenue }}",
+            "Headquarters": "={{ $json.headquarters }}",
+            "Countries_Of_Operation": "={{ $json.countries_of_operation }}",
+            "Qualification_Score": "={{ $json.qualification_score }}",
+            "Data_Confidence": "={{ $json.data_confidence }}",
+            "Why_Low_Fit": "={{ $json.reasoning }}",
+            "Evidence_Summary": "={{ $json.evidence_summary }}",
+            "Missing_Information": "={{ $json.missing_information }}",
+            "Source_URLs": "={{ $json.source_urls }}",
+            "Human_Review_Status": "Not reviewed"
+          },
+          "schema": [
+            {
+              "id": "Lead_ID",
+              "displayName": "Lead_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Processed_Date",
+              "displayName": "Processed_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contact_Name",
+              "displayName": "Contact_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Job_Title",
+              "displayName": "Job_Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Name",
+              "displayName": "Company_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Domain",
+              "displayName": "Company_Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Description",
+              "displayName": "Company_Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Employee_Range",
+              "displayName": "Employee_Range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estimated_Revenue",
+              "displayName": "Estimated_Revenue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Headquarters",
+              "displayName": "Headquarters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Countries_Of_Operation",
+              "displayName": "Countries_Of_Operation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Qualification_Score",
+              "displayName": "Qualification_Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Data_Confidence",
+              "displayName": "Data_Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Why_Low_Fit",
+              "displayName": "Why_Low_Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Evidence_Summary",
+              "displayName": "Evidence_Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Missing_Information",
+              "displayName": "Missing_Information",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Source_URLs",
+              "displayName": "Source_URLs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Human_Review_Status",
+              "displayName": "Human_Review_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a9bea24c-847f-49d1-935e-e0de046dd993",
+      "name": "Save Unqualified Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1440,
+        192
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MG310It0rEGjOxWR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8",
+          "cachedResultName": "AI_Lead_Qualification_Spreadsheet_Template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 753666109,
+          "cachedResultName": "Needs_Review",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EWUhoJZRJd30QYbGsVjljkIrn11lulGTRrrTQuK61B8/edit#gid=753666109"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead_ID": "={{ $json.lead_id }}",
+            "Processed_Date": "={{ $json.processed_at }}",
+            "Contact_Name": "={{ $json.contact_name }}",
+            "Email": "={{ $json.email }}",
+            "Job_Title": "={{ $json.job_title }}",
+            "Company_Name": "={{ $json.company_name }}",
+            "Company_Domain": "={{ $json.company_domain }}",
+            "Industry": "={{ $json.industry }}",
+            "Qualification_Score": "={{ $json.qualification_score }}",
+            "Data_Confidence": "={{ $json.data_confidence }}",
+            "Reason_For_Review": "={{ $json.reasoning }}",
+            "Conflicting_or_Missing_Evidence": "={{ $json.conflicting_or_missing_evidence }}",
+            "Recommended_Verification": "={{ $json.recommended_verification }}",
+            "Source_URLs": "={{ $json.source_urls }}",
+            "Review_Status": "Pending"
+          },
+          "schema": [
+            {
+              "id": "Lead_ID",
+              "displayName": "Lead_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Processed_Date",
+              "displayName": "Processed_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contact_Name",
+              "displayName": "Contact_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Job_Title",
+              "displayName": "Job_Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Name",
+              "displayName": "Company_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Company_Domain",
+              "displayName": "Company_Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Qualification_Score",
+              "displayName": "Qualification_Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Data_Confidence",
+              "displayName": "Data_Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Reason_For_Review",
+              "displayName": "Reason_For_Review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Conflicting_or_Missing_Evidence",
+              "displayName": "Conflicting_or_Missing_Evidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Recommended_Verification",
+              "displayName": "Recommended_Verification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Source_URLs",
+              "displayName": "Source_URLs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Review_Status",
+              "displayName": "Review_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a46bb020-67a2-48f6-ade4-0cf4f9f7db44",
+      "name": "Flag for Human Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1440,
+        384
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MG310It0rEGjOxWR",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New Lead Added": {
+      "main": [
+        [
+          {
+            "node": "Target Organization Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target Organization Profile": {
+      "main": [
+        [
+          {
+            "node": "Research Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Company": {
+      "main": [
+        [
+          {
+            "node": "Combine Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Research": {
+      "main": [
+        [
+          {
+            "node": "AI Qualify Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Qualify Lead": {
+      "main": [
+        [
+          {
+            "node": "Prepare Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Result": {
+      "main": [
+        [
+          {
+            "node": "Route by Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Verdict": {
+      "main": [
+        [
+          {
+            "node": "Save Qualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Unqualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flag for Human Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Qualified Lead": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "bae4dd0c-18a8-4e05-a5cf-2fd8a4001146",
+  "meta": {
+    "instanceId": "1eb5261fb3bd04a13150063c9674e8e5987724dd90466d09e76bd7eed726c615"
+  },
+  "nodeGroups": [
+    {
+      "id": "1715e233-a52b-4099-ab8f-fcebc7340d8c",
+      "name": "Research company",
+      "nodeIds": [
+        "1d38bdb9-5a5a-4a92-8541-5401b1cc33d6",
+        "6d054384-0ef9-4866-97a4-c97e63d546bb",
+        "b66f7c03-b063-4787-ac8e-5c268d88257e"
+      ],
+      "description": "Takes each new sheet row, adds our offering profile, and searches the web for what the company does"
+    },
+    {
+      "id": "0c8113bd-80c1-46e2-bb12-f61bc9ca3937",
+      "name": "Qualify lead",
+      "nodeIds": [
+        "d8c15707-95fb-4397-ac54-52d865a12cec",
+        "27840e38-16e8-4a24-b6bb-6fb3a2bffc1c",
+        "91073226-c38a-41ec-a0a8-f8667b265f39"
+      ],
+      "description": "AI compares the company with our offering and rules: qualified, unqualified or needs review"
+    },
+    {
+      "id": "438bcaf9-f886-4ced-b556-c8b35942ea29",
+      "name": "Alert sales",
+      "nodeIds": [
+        "027e142d-cba8-4c61-8e2e-4fdadcfefb33",
+        "1096aff9-ecd8-46e5-9267-f09007e43cb1"
+      ],
+      "description": "Logs good-fit leads with research and next steps, then emails the sales team"
+    }
+  ],
+  "id": "IVUZZCMRzA3x5fHa",
+  "tags": []
+}
